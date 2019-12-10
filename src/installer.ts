@@ -9,7 +9,7 @@ import * as path from 'path';
 import * as semver from 'semver';
 
 let osPlat: string = os.platform();
-let osArch: string = translateArchToDistUrl(os.arch());
+// let osArch: string = translateArchToDistUrl(os.arch());
 
 if (!tempDirectory) {
   let baseLocation;
@@ -35,7 +35,7 @@ interface INodeVersion {
   files: string[];
 }
 
-export async function getNode(versionSpec: string) {
+export async function getNode(versionSpec: string, osArch: string) {
   // check cache
   let toolPath: string;
   toolPath = tc.find('node', versionSpec);
@@ -50,7 +50,7 @@ export async function getNode(versionSpec: string) {
       version = versionSpec;
     } else {
       // query nodejs.org for a matching version
-      version = await queryLatestMatch(versionSpec);
+      version = await queryLatestMatch(versionSpec, osArch);
       if (!version) {
         throw new Error(
           `Unable to find Node version '${versionSpec}' for platform ${osPlat} and architecture ${osArch}.`
@@ -63,7 +63,7 @@ export async function getNode(versionSpec: string) {
 
     if (!toolPath) {
       // download, extract, cache
-      toolPath = await acquireNode(version);
+      toolPath = await acquireNode(version, osArch);
     }
   }
 
@@ -81,7 +81,7 @@ export async function getNode(versionSpec: string) {
   core.addPath(toolPath);
 }
 
-async function queryLatestMatch(versionSpec: string): Promise<string> {
+async function queryLatestMatch(versionSpec: string, osArch: string): Promise<string> {
   // node offers a json list of versions
   let dataFileName: string;
   switch (osPlat) {
@@ -143,7 +143,7 @@ function evaluateVersions(versions: string[], versionSpec: string): string {
   return version;
 }
 
-async function acquireNode(version: string): Promise<string> {
+async function acquireNode(version: string, osArch: string): Promise<string> {
   //
   // Download - a tool installer intimately knows how to get the tool (and construct urls)
   //
@@ -162,7 +162,7 @@ async function acquireNode(version: string): Promise<string> {
     downloadPath = await tc.downloadTool(downloadUrl);
   } catch (err) {
     if (err instanceof tc.HTTPError && err.httpStatusCode == 404) {
-      return await acquireNodeFromFallbackLocation(version);
+      return await acquireNodeFromFallbackLocation(version, osArch);
     }
 
     throw err;
@@ -199,7 +199,8 @@ async function acquireNode(version: string): Promise<string> {
 // Note also that the files are normally zipped but in this case they are just an exe
 // and lib file in a folder, not zipped.
 async function acquireNodeFromFallbackLocation(
-  version: string
+  version: string, 
+  osArch: string
 ): Promise<string> {
   // Create temporary folder to download in to
   let tempDownloadFolder: string =
@@ -244,4 +245,8 @@ function translateArchToDistUrl(arch: string): string {
     default:
       return arch;
   }
+}
+
+export function getArch(): string {
+  return translateArchToDistUrl(os.arch());
 }

@@ -13,9 +13,15 @@ async function run() {
     if (!version) {
       version = core.getInput('node-version');
     }
+
+    let arch = core.getInput('node-arch');
+    if (!arch) {
+      arch = installer.getArch();
+    }
+
     if (version) {
       // TODO: installer doesn't support proxy
-      await installer.getNode(version);
+      await installer.getNode(version, arch);
     }
 
     const registryUrl: string = core.getInput('registry-url');
